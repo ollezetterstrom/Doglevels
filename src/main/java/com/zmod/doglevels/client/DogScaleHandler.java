@@ -16,8 +16,13 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * Scales the wolf render based on its level.
  *
- * Reads the MAX_HEALTH AttributeModifier (added by DogLevelData.applyStats)
- * to determine the level, then applies a scale to the PoseStack.
+ * CHANGES IN 1.4.0:
+ *   - Reads the level from {@link ClientDogLevelCache} (synced via
+ *     {@link com.zmod.doglevels.network.DogLevelSyncMessage}) when available,
+ *     instead of inferring it from the synced MAX_HEALTH attribute.
+ *   - Falls back to the old attribute-derived level when no sync packet has
+ *     arrived yet (e.g. on a vanilla server without the mod, or in the first
+ *     tick before StartTracking fires).
  *
  * IMPORTANT: We only push in Pre and only pop in Post if we actually pushed.
  * Since RenderLivingEvent.Post always fires after Pre (unless the Pre is
@@ -53,12 +58,26 @@ public final class DogScaleHandler
 
     private static float computeScale(Wolf wolf)
     {
-        int level = computeLevelFromModifier(wolf);
+        int level = computeLevel(wolf);
         if (level <= 1) return 1.0F;
-        double perLevel = cfg(DogLevelsConfig.SIZE_PER_LEVEL, 0.015);
-        double maxBonus = cfg(DogLevelsConfig.MAX_SIZE_BONUS, 0.6);
+        double perLevel = DogLevelsConfig.getDouble(DogLevelsConfig.SIZE_PER_LEVEL, 0.015);
+        double maxBonus = DogLevelsConfig.getDouble(DogLevelsConfig.MAX_SIZE_BONUS, 0.6);
         double bonus = Math.min(maxBonus, perLevel * (level - 1));
         return (float) (1.0 + bonus);
+    }
+
+    /**
+     * Level resolution order:
+     *   1. Synced value from {@link ClientDogLevelCache} (authoritative since 1.4.0).
+     *   2. Fallback: derived from the synced MAX_HEALTH attribute modifier
+     *      (works on vanilla servers, but breaks if the operator changes
+     *      health_per_level mid-game).
+     */
+    private static int computeLevel(Wolf wolf)
+    {
+        ClientDogLevelCache.Entry sync = ClientDogLevelCache.get(wolf.getId());
+        if (sync != null) return sync.level();
+        return computeLevelFromModifier(wolf);
     }
 
     private static int computeLevelFromModifier(Wolf wolf)
@@ -67,17 +86,8 @@ public final class DogScaleHandler
         if (healthAttr == null) return 1;
         AttributeModifier mod = healthAttr.getModifier(DogLevelData.HEALTH_MOD_ID);
         if (mod == null) return 1;
-        double healthPerLevel = cfg(DogLevelsConfig.HEALTH_PER_LEVEL, 1.0);
+        double healthPerLevel = DogLevelsConfig.getDouble(DogLevelsConfig.HEALTH_PER_LEVEL, 1.0);
         if (healthPerLevel <= 0) return 1;
         return 1 + (int) Math.round(mod.amount() / healthPerLevel);
-    }
-
-    private static double cfg(net.minecraftforge.common.ForgeConfigSpec.DoubleValue v, double fallback)
-    {
-        try {
-            return v != null && v.get() != null ? v.get() : fallback;
-        } catch (Throwable ignored) {
-            return fallback;
-        }
     }
 }

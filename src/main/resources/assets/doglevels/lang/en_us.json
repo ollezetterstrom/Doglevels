@@ -1,5 +1,49 @@
 {
   "item.doglevels.treat": "Treat",
+  "item.doglevels.treat.tooltip": "Feed to a tamed wolf to grant XP",
   "itemGroup.doglevels": "Dog Levels",
-  "item.doglevels.treat.tooltip": "Feed to a tamed wolf to grant XP"
+
+  "doglevels.notify.level_up": "Your dog reached level %s!",
+
+  "doglevels.treat.level_up": "Your dog loved the treat and reached level %s!",
+  "doglevels.treat.max_level": "Your dog is already at max level!",
+  "doglevels.treat.gained_xp": "Dog gained %s XP (%s/%s).",
+
+  "doglevels.summary.prefix": "Dog ",
+  "doglevels.summary.xp": " XP %s/%s",
+  "doglevels.summary.max": " MAX",
+  "doglevels.summary.behavior": " [%s]",
+
+  "doglevels.screen.title": "Dog Stats",
+  "doglevels.screen.not_found": "Dog not found",
+  "doglevels.screen.stats_header": "=== Stats ===",
+  "doglevels.screen.abilities_header": "=== Abilities ===",
+  "doglevels.screen.level": "Level: %s %s",
+  "doglevels.screen.max": "(MAX)",
+  "doglevels.screen.behavior": "Behavior: %s",
+  "doglevels.screen.behavior_label": "Behavior",
+  "doglevels.screen.done": "Done",
+  "doglevels.screen.ability_unlocked": "  \u2713 %s",
+  "doglevels.screen.ability_locked": "  \u2717 %s (Lv %s)",
+
+  "doglevels.ability.splash_bite": "Splash Bite",
+  "doglevels.ability.fire_resist": "Fire Resistance",
+  "doglevels.ability.pack_hunter": "Pack Hunter",
+  "doglevels.ability.howl_of_vitality": "Howl of Vitality",
+  "doglevels.ability.lifesteal": "Lifesteal",
+  "doglevels.ability.bonded_endurance": "Bonded Endurance",
+
+  "doglevels.cmd.not_wolf": "Entity %s is not a wolf.",
+  "doglevels.cmd.not_tamed": "That wolf is not tamed.",
+  "doglevels.cmd.not_owner": "You don't own that wolf.",
+  "doglevels.cmd.no_data": "Dog has no level data.",
+  "doglevels.cmd.no_target": "No tamed wolf in sight. Look at one or pass an entity ID.",
+  "doglevels.cmd.player_only": "This command must be run by a player.",
+  "doglevels.cmd.invalid_behavior": "Invalid behavior mode: %s. Valid: DEFAULT, AGGRESSIVE, PASSIVE",
+  "doglevels.cmd.info.normal": "Dog Lv %s (%s/%s XP) | Behavior: %s",
+  "doglevels.cmd.info.max": "Dog Lv %s (MAX) | Behavior: %s",
+  "doglevels.cmd.behavior_set": "Dog behavior set to: %s",
+  "doglevels.cmd.setlevel.done": "Set level to %s on %s dog(s).",
+  "doglevels.cmd.addxp.done": "Added %s XP to %s dog(s).",
+  "doglevels.cmd.reset.done": "Reset %s dog(s) to level 1."
 }

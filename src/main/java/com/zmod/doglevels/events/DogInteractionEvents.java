@@ -1,12 +1,9 @@
 package com.zmod.doglevels.events;
 
 import com.zmod.doglevels.DogLevelsMod;
-import com.zmod.doglevels.abilities.DogAbilities;
 import com.zmod.doglevels.capability.CapabilityHelper;
 import com.zmod.doglevels.capability.DogLevelCapabilities;
-import com.zmod.doglevels.capability.DogLevelData;
 import com.zmod.doglevels.config.DogLevelsConfig;
-import com.zmod.doglevels.items.ModItems;
 import com.zmod.doglevels.network.DogLevelNetwork;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -19,7 +16,15 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Handles right-click interactions with tamed wolves:
+ * Handles right-click interactions with tamed wolves.
+ *
+ * CHANGES IN 1.4.0:
+ *   - All user-facing strings moved to the lang file (en_us.json) so they can
+ *     be translated.
+ *   - All XP/level changes call {@link DogLevelNetwork#sendDogLevelUpdate(Wolf)}
+ *     so the client GUI and render scale handler stay in sync.
+ *
+ * Interactions:
  *   - Treat item: feeds the dog for instant XP (cancels the event)
  *   - Empty hand + sneak: opens the DogScreen UI (client-side; cancels event on both sides)
  *   - Empty hand (no sneak): brief chat summary (does NOT cancel — vanilla sit/stand toggles)
@@ -43,20 +48,20 @@ public final class DogInteractionEvents
             if (player.level().isClientSide) return;
             event.setCanceled(true);
             CapabilityHelper.getCapability(wolf, DogLevelCapabilities.DOG_LEVEL).ifPresent(data -> {
-                int xp = DogLevelsConfig.XP_FROM_TREAT.get();
+                int xp = DogLevelsConfig.getInt(DogLevelsConfig.XP_FROM_TREAT, 50);
                 int ups = data.addXP(xp);
                 if (ups > 0) {
                     data.applyStats(wolf);
-                    player.sendSystemMessage(Component.literal(
-                            "Your dog loved the treat and reached level " + data.getLevel() + "!"));
+                    player.sendSystemMessage(Component.translatable(
+                            "doglevels.treat.level_up", data.getLevel()));
                 } else if (data.isMaxLevel()) {
-                    player.sendSystemMessage(Component.literal(
-                            "Your dog is already at max level!").withStyle(ChatFormatting.GOLD));
+                    player.sendSystemMessage(Component.translatable(
+                            "doglevels.treat.max_level").withStyle(ChatFormatting.GOLD));
                 } else {
                     int need = data.xpToNextLevel();
                     int cur = data.getXP();
-                    player.sendSystemMessage(Component.literal(
-                            "Dog gained " + xp + " XP (" + cur + "/" + need + ")."));
+                    player.sendSystemMessage(Component.translatable(
+                            "doglevels.treat.gained_xp", xp, cur, need));
                 }
                 DogLevelNetwork.sendDogLevelUpdate(wolf);
             });
@@ -78,14 +83,14 @@ public final class DogInteractionEvents
         // Empty hand (no sneak) → brief summary (don't cancel — vanilla sit/stand toggles)
         if (stack.isEmpty() && !player.level().isClientSide) {
             CapabilityHelper.getCapability(wolf, DogLevelCapabilities.DOG_LEVEL).ifPresent(data -> {
-                var msg = Component.literal("Dog ")
+                var msg = Component.translatable("doglevels.summary.prefix")
                         .append(Component.literal("[Lv " + data.getLevel() + "]").withStyle(ChatFormatting.AQUA));
                 if (!data.isMaxLevel()) {
-                    msg.append(" XP " + data.getXP() + "/" + data.xpToNextLevel());
+                    msg.append(Component.translatable("doglevels.summary.xp", data.getXP(), data.xpToNextLevel()));
                 } else {
-                    msg.append(" MAX").withStyle(ChatFormatting.GOLD);
+                    msg.append(Component.translatable("doglevels.summary.max").withStyle(ChatFormatting.GOLD));
                 }
-                msg.append(" [" + data.getBehavior().name() + "]");
+                msg.append(Component.translatable("doglevels.summary.behavior", data.getBehavior().name()));
                 player.sendSystemMessage(msg);
             });
         }

@@ -10,7 +10,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Wolf;
-import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.common.util.INBTSerializable;
 
 /**
@@ -21,21 +20,15 @@ import net.minecraftforge.common.util.INBTSerializable;
  * tamed wolves, and between wolf variants) and only adds our level bonus on top.
  *
  * Also stores the dog's behavior mode (DEFAULT, AGGRESSIVE, PASSIVE).
+ *
+ * CHANGES IN 1.4.0:
+ *   - MAX_LEVEL is no longer a static-final constant. It is read live from config
+ *     via {@link #getMaxLevel()} (which delegates to {@link DogLevelsConfig#getMaxLevel()}).
+ *     This fixes a bug where editing max_level in doglevels-common.toml had no effect
+ *     until a full JVM restart.
  */
 public final class DogLevelData implements INBTSerializable<CompoundTag>
 {
-    public static final int MAX_LEVEL;
-    static {
-        int max;
-        try {
-            max = DogLevelsConfig.MAX_LEVEL != null && DogLevelsConfig.MAX_LEVEL.get() != null
-                    ? DogLevelsConfig.MAX_LEVEL.get() : 30;
-        } catch (Throwable ignored) {
-            max = 30;
-        }
-        MAX_LEVEL = max;
-    }
-
     public static final ResourceLocation HEALTH_MOD_ID =
             ResourceLocation.fromNamespaceAndPath(DogLevelsMod.MOD_ID, "health_bonus");
     public static final ResourceLocation DAMAGE_MOD_ID =
@@ -56,27 +49,36 @@ public final class DogLevelData implements INBTSerializable<CompoundTag>
     public int getXP() { return xp; }
     public DogBehavior getBehavior() { return behavior; }
 
-    public void setLevel(int lvl) { this.level = Math.max(1, Math.min(MAX_LEVEL, lvl)); }
+    public void setLevel(int lvl) { this.level = Math.max(1, Math.min(getMaxLevel(), lvl)); }
     public void setXP(int amount) { this.xp = Math.max(0, amount); }
     public boolean isStatsApplied() { return statsApplied; }
     public void setStatsApplied(boolean applied) { this.statsApplied = applied; }
     public void setBehavior(DogBehavior b) { this.behavior = b; }
 
+    /**
+     * Returns the current configured max level. Read live from config every call.
+     * Replaces the old {@code public static final int MAX_LEVEL} constant.
+     */
+    public static int getMaxLevel() {
+        return DogLevelsConfig.getMaxLevel();
+    }
+
     public int addXP(int amount)
     {
-        if (level >= MAX_LEVEL) {
+        int maxLevel = getMaxLevel();
+        if (level >= maxLevel) {
             this.xp = 0;
             return 0;
         }
         if (amount <= 0) return 0;
         this.xp += amount;
         int levelUps = 0;
-        while (level < MAX_LEVEL && this.xp >= xpToNextLevel()) {
+        while (level < maxLevel && this.xp >= xpToNextLevel()) {
             this.xp -= xpToNextLevel();
             this.level++;
             levelUps++;
         }
-        if (level >= MAX_LEVEL) {
+        if (level >= maxLevel) {
             this.xp = 0;
         }
         return levelUps;
@@ -84,9 +86,10 @@ public final class DogLevelData implements INBTSerializable<CompoundTag>
 
     public int xpToNextLevel()
     {
-        if (level >= MAX_LEVEL) return 0;
-        double base = cfg(DogLevelsConfig.XP_PER_LEVEL_BASE, 20.0);
-        double growth = cfg(DogLevelsConfig.XP_PER_LEVEL_GROWTH, 10.0);
+        int maxLevel = getMaxLevel();
+        if (level >= maxLevel) return 0;
+        double base = DogLevelsConfig.getDouble(DogLevelsConfig.XP_PER_LEVEL_BASE, 20.0);
+        double growth = DogLevelsConfig.getDouble(DogLevelsConfig.XP_PER_LEVEL_GROWTH, 10.0);
         return (int) Math.round(base + growth * (level - 1));
     }
 
@@ -97,12 +100,12 @@ public final class DogLevelData implements INBTSerializable<CompoundTag>
         return Math.max(0.0f, Math.min(1.0f, (float) xp / need));
     }
 
-    public boolean isMaxLevel() { return level >= MAX_LEVEL; }
+    public boolean isMaxLevel() { return level >= getMaxLevel(); }
 
     public float sizeScale()
     {
-        double perLevel = cfg(DogLevelsConfig.SIZE_PER_LEVEL, 0.015);
-        double maxBonus = cfg(DogLevelsConfig.MAX_SIZE_BONUS, 0.6);
+        double perLevel = DogLevelsConfig.getDouble(DogLevelsConfig.SIZE_PER_LEVEL, 0.015);
+        double maxBonus = DogLevelsConfig.getDouble(DogLevelsConfig.MAX_SIZE_BONUS, 0.6);
         double bonus = Math.min(maxBonus, perLevel * (level - 1));
         return (float) (1.0 + bonus);
     }
@@ -111,11 +114,11 @@ public final class DogLevelData implements INBTSerializable<CompoundTag>
     {
         if (wolf == null) return;
 
-        double healthBonus = (level - 1) * cfg(DogLevelsConfig.HEALTH_PER_LEVEL, 1.0);
-        double damageBonus = (level - 1) * cfg(DogLevelsConfig.DAMAGE_PER_LEVEL, 0.5);
-        double speedBonus  = (level - 1) * cfg(DogLevelsConfig.SPEED_PER_LEVEL, 0.002);
-        double armorBonus  = (level - 1) * cfg(DogLevelsConfig.ARMOR_PER_LEVEL, 0.5);
-        double kbBonus     = (level - 1) * cfg(DogLevelsConfig.KNOCKBACK_RESIST_PER_LEVEL, 0.02);
+        double healthBonus = (level - 1) * DogLevelsConfig.getDouble(DogLevelsConfig.HEALTH_PER_LEVEL, 1.0);
+        double damageBonus = (level - 1) * DogLevelsConfig.getDouble(DogLevelsConfig.DAMAGE_PER_LEVEL, 0.5);
+        double speedBonus  = (level - 1) * DogLevelsConfig.getDouble(DogLevelsConfig.SPEED_PER_LEVEL, 0.002);
+        double armorBonus  = (level - 1) * DogLevelsConfig.getDouble(DogLevelsConfig.ARMOR_PER_LEVEL, 0.5);
+        double kbBonus     = (level - 1) * DogLevelsConfig.getDouble(DogLevelsConfig.KNOCKBACK_RESIST_PER_LEVEL, 0.02);
 
         applyModifier(wolf, Attributes.MAX_HEALTH, HEALTH_MOD_ID, healthBonus);
         applyModifier(wolf, Attributes.ATTACK_DAMAGE, DAMAGE_MOD_ID, damageBonus);
@@ -138,15 +141,6 @@ public final class DogLevelData implements INBTSerializable<CompoundTag>
         if (amount > 0.0001) {
             AttributeModifier mod = new AttributeModifier(modId, amount, AttributeModifier.Operation.ADD_VALUE);
             inst.addOrReplacePermanentModifier(mod);
-        }
-    }
-
-    private static double cfg(ForgeConfigSpec.DoubleValue v, double fallback)
-    {
-        try {
-            return v != null && v.get() != null ? v.get() : fallback;
-        } catch (Throwable ignored) {
-            return fallback;
         }
     }
 
@@ -173,6 +167,7 @@ public final class DogLevelData implements INBTSerializable<CompoundTag>
         } catch (Throwable ignored) {
             this.behavior = DogBehavior.DEFAULT;
         }
-        if (this.level > MAX_LEVEL) this.level = MAX_LEVEL;
+        int maxLevel = getMaxLevel();
+        if (this.level > maxLevel) this.level = maxLevel;
     }
 }
