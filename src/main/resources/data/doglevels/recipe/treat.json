@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    { "item": "minecraft:cooked_beef" },
+    { "item": "minecraft:bone" },
+    { "item": "minecraft:sugar" }
+  ],
+  "result": {
+    "id": "doglevels:treat",
+    "count": 4
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "item.doglevels.treat": "Treat",
+  "itemGroup.doglevels": "Dog Levels",
+  "item.doglevels.treat.tooltip": "Feed to a tamed wolf to grant XP"
+}
